@@ -1,0 +1,68 @@
+#!/usr/bin/env python2.6
+# -*- coding: utf-8 -*-
+
+"""
+backend.main
+~~~~~~~~~~~~
+
+This is the main module of backend.
+
+:copyright: (c) 2016 by AgileNet.
+"""
+import flask
+import threading
+try:
+    import setproctitle
+except ImportError:
+    raise Exception('setproctitle not installed. (try pip install setproctitle)')
+try:
+    from gevent.wsgi import WSGIServer
+except ImportError:
+    raise Exception('gevent not installed. (try pip install gevent)')
+
+from backend.restful import app
+# from backend.cli import init_cli
+from backend.log import start_log
+from backend.globals import Global
+from backend.heartbeat import Heartbeat
+from backend.config import Config, ParseConfig
+
+
+def set_process_name():
+    setproctitle.setproctitle('vmse_backend')
+
+
+def print_version():
+    print("""
+    *****************************************************
+                        vmse_backend
+                           {0}
+    *****************************************************
+    """.format(Global.BackendConfig.version))
+
+
+def start_http_server():
+    WSGIServer(('0.0.0.0', Global.BackendConfig.http_port), app).serve_forever()
+
+
+def main():
+    set_process_name()
+    print_version()
+    ParseConfig.parse()
+    start_log()
+
+    thread = Heartbeat()
+    thread.setDaemon(True)
+    thread.start()
+
+    '''
+    thread = threading.Thread(target=init_cli)
+    thread.setDaemon(True)
+    thread.start()
+    '''
+
+    start_http_server()
+
+
+if __name__ == '__main__':
+    main()
